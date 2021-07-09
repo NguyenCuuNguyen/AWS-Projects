@@ -1,0 +1,14 @@
+{
+	"body": {
+		"version": "1.0",
+		"response": {
+			"outputSpeech": {
+				"type": "SSML",
+				"ssml": "<speak>20 for roses have been recorded and saved to DynamoDB</speak>"
+			},
+			"type": "_DEFAULT_RESPONSE"
+		},
+		"sessionAttributes": {},
+		"userAgent": "ask-python/1.15.0 Python/3.8.10"
+	}
+}

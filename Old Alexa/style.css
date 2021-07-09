@@ -1,0 +1,19 @@
+.block {
+  display: block;
+  width: 100%;
+  border: none;
+  background-color: #a5e3f2;
+  padding: 14px 28px;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+}
+
+#result{
+  background-color: #ebd234;
+  text-align: center;
+}
+
+.login{
+  text-align: center;
+}

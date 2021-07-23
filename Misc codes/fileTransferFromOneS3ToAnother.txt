@@ -1,0 +1,165 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 11 09:44:30 2020
+
+@author: wilkincr
+"""
+
+import boto3
+import traceback
+import os
+import sys
+import shutil
+import json
+import pandas as pd
+from builtins import len
+from email._encoded_words import len_b, len_q
+
+def list_s3_objects(s3, data_prefix, bucket_name):
+    item_list = []
+#    print("listing s3 objects")
+    kwargs = {"Bucket": bucket_name, "Prefix": data_prefix}
+    continuationToken = True
+    while continuationToken:
+        objects = s3.list_objects_v2(**kwargs)
+        try:
+            for obj in objects["Contents"]:
+                item_list.append(obj["Key"])
+            if "NextContinuationToken" in objects:
+                kwargs["ContinuationToken"] = objects["NextContinuationToken"]
+            else:
+                continuationToken = False
+        except KeyError:
+            continuationToken = False
+    print("total files in " + bucket_name,data_prefix + ":", len(item_list))
+    return item_list
+
+def list_local_objects(path):
+    item_list_local = []
+    for root, dirs, files in os.walk(path, topdown=False):
+        for name in files:
+#            print(os.path.join(root, name).replace('.\\', '/').replace('\\', '/'))
+            item_list_local.append(os.path.join(root, name).replace('.\\', '/').replace('\\', '/'))
+    return item_list_local
+
+
+
+
+
+################# CODE STARTING ################################
+# Create Clients
+source_s3_prod = boto3.client('s3', aws_access_key_id="",aws_secret_access_key="")
+destination_s3_prod = boto3.client('s3', aws_access_key_id="",aws_secret_access_key="")
+#aws_session_token=''             )
+
+#stag kms key 
+#kmsKey=""
+
+#prod kms key
+kmsKey = ''
+
+outputFile = "fileTransferReport.json"
+completeList = []
+
+
+def loadLocalSuccessReport():
+    global completeList
+    if os.path.isfile(outputFile):
+        file = open(outputFile, "r")
+        s3Vals = json.load(file)
+        file.close()
+        completeList = s3Vals['completedList']
+
+def processUpload():
+    global completeList
+    loadLocalSuccessReport()
+    fileRootPath = "" 
+    uploadFolder = 'Jobs'
+    source_bucket_name = 'zincorgre-dev-tocopy'
+    destinationBucketame="zincorgre-prod-tocopy"
+    completedJobList={};
+    jobs = ["100002","100005"]
+    
+    for jobID in jobs:
+        print("Processing job ",jobID)
+        if jobID in completeList:
+            print("Already processed!")
+            #continue
+        
+        local_list = list_local_objects(fileRootPath+uploadFolder+"/"+jobID)
+        prod_list_source = list_s3_objects(source_s3_prod, uploadFolder+"/"+jobID, source_bucket_name)
+        prod_listDestination = list_s3_objects(destination_s3_prod, uploadFolder+"/"+jobID, destinationBucketame)
+        
+        
+        requiredDownloadFile = set(prod_list_source)-set(local_list)
+        #print("download file required : ",requiredDownloadFile)
+        print("total files to download required : ",len(requiredDownloadFile))
+        
+        if len(requiredDownloadFile)!=0:
+            s3_resource = boto3.resource('s3')
+            bucket = s3_resource.Bucket(source_bucket_name) 
+            for file in requiredDownloadFile:
+                print("Downloding file : ",file)
+                if not os.path.exists(os.path.dirname(file)):
+                    os.makedirs(os.path.dirname(file))
+                #bucket.download_file(file, file)
+                source_s3_prod.download_file(source_bucket_name, file,file)
+                
+            local_list = list_local_objects(fileRootPath+uploadFolder+"/"+jobID)        
+        
+        extraFileInLocal = set(local_list)-set(prod_list_source)
+        if len(extraFileInLocal)!=0:
+            print("extra file in local",extraFileInLocal)
+            for file in extraFileInLocal:
+                #file = file.replace('/', '\\')
+                os.remove(file)
+            local_list = list_local_objects(fileRootPath+uploadFolder+"/"+jobID)
+
+        
+        requiredDownloadFile = set(prod_list_source)-set(local_list)
+        extraFileInLocal = set(local_list)-set(prod_list_source)
+        
+        print("----->Required files : ",requiredDownloadFile,"   extraFileInLocal files : ",extraFileInLocal)
+        print("---------------------------------------")
+        if len(requiredDownloadFile)!=0 or len(extraFileInLocal)!=0:
+            print("ERRORRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR-------------------------")
+            return
+        
+        
+        
+        for val in local_list:
+            print("Uploading file",val)
+            #uploadFileName = val.replace(replaceName,"")
+            uploadFileName = val
+            if uploadFileName not in prod_listDestination:
+        #        print(count)
+        #        print(uploadFileName)
+                destination_s3_prod.upload_file(val, destinationBucketame, uploadFileName,  {'SSEKMSKeyId': kmsKey, 'ServerSideEncryption': 'aws:kms'})
+
+        prod_listDestination = list_s3_objects(destination_s3_prod, uploadFolder+"/"+jobID, destinationBucketame)
+        fileDiffBetweenDiffBuckets = set(prod_list_source)-set(prod_listDestination)
+        if len(fileDiffBetweenDiffBuckets)!=0:
+            print("ERROR, Some files may not uploaded-------------------------")
+            return
+        else:
+            completeList.append(jobID)
+            try:
+                mydir=uploadFolder+"/"+jobID
+                shutil.rmtree(mydir)
+            except Exception as e:
+                print(e)
+            print("uploaded success")
+            
+                    
+try:
+    processUpload()
+except Exception as e:
+    print(e)
+    traceback.print_exc()
+    print("ERROR in main!!")
+
+
+#refresh the output list
+file = open(outputFile, "w")
+file.write(json.dumps({"completedList":completeList}))
+file.close()    

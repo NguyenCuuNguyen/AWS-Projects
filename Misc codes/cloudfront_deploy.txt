@@ -1,0 +1,62 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jul 19 15:54:14 2021
+
+@author: wilkincr
+"""
+
+import boto3
+
+client = boto3.client('cloudfront',
+                      aws_access_key_id='',
+                      aws_secret_access_key='',
+                      aws_session_token=''
+                      )
+
+response = client.create_cloud_front_origin_access_identity(
+    CloudFrontOriginAccessIdentityConfig={
+        'CallerReference': 'prat-ctap-feedback-OAI',
+        'Comment': 'Origin Access Identity for User Feedback App'
+    }
+)
+
+response = client.create_distribution_with_tags(
+     DistributionConfigWithTags={
+        'DistributionConfig': {
+        'CallerReference': 'prat-ctap-user-feedback-instance',
+        'Origins': {
+            'Quantity': 1,
+            'Items': [
+                {
+                    'Id': 'prat-ctap-user-feedback-app.s3.eu-west-1.amazonaws.com',
+                    'DomainName': 'prat-ctap-user-feedback-app.s3.eu-west-1.amazonaws.com',
+                    'S3OriginConfig': {
+                        'OriginAccessIdentity': 'string'
+                    }
+                },
+            ]
+        },
+        'DefaultCacheBehavior': {
+            'TargetOriginId': 'prat-ctap-user-feedback-app.s3.eu-west-1.amazonaws.com',
+            'ViewerProtocolPolicy': 'redirect-to-https',
+            'AllowedMethods': {
+                'Quantity': 2,
+                'Items': [
+                    'GET',
+                    'HEAD',
+                ]
+            }
+        },
+        'Comment': 'Cloudfront instance for CTAP user feedback app',
+        'Enabled': True
+        },
+        'Tags': {
+            'Items': [
+                {
+                    'Key': 'Application',
+                    'Value': 'ctap'
+                },
+            ]
+        }
+    }
+)

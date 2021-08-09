@@ -328,6 +328,7 @@ exports.handler = (event, context, callback) => {
                             console.log("Successful Cognito Authentication! User: " + hps[1]);
                             const cookies = ["token=" + JWTtoken.id_token + "; Expires=" + (new Date(JSON.parse(hps[1])["exp"]*1000)).toUTCString() + "; Max-Age=" + (JSON.parse(hps[1])["exp"]-Math.round(new Date().getTime() / 1000)-30).toString() + "; Secure; HttpOnly; SameSite=None;"];
                             //console.log(cookies[0]);
+                            
                            request = {
                                 status: '307',
                                 statusDescription: 'Temporary Redirect',

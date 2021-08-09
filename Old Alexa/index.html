@@ -9,18 +9,36 @@
     <!--eylink rel="stylesheet" href="style.css">-->
   </head>
   <body class="block" bgcolor = #a5e3f2>
-    <h1>Alexa Webpage with Button</h1>
-    <h2>This is a mock website</h2>
+    <h1 id="header1">Alexa Webpage with Button</h1>
+    <h2 id="header2">This is a mock website</h2>
     <!--<div class="container"> <!--container class has limited width
       <button class="btn btn-header" type="button">Talk to Alexa</button></div>-->
       <form class="login" action="query.js" id="request">
-        <label for="Username">Username:</label>
-        <input type="text" id="Username" name="Username"><br><br>
-        <label for="Password">Password:</label>
-        <input type="password" id="Password" name="Password"><br><br>
-        <button type="submit" value="Submit" id="SubmitButton">Submit</button>
-        <button type="Get entry" value="Get" id="getdata">Get entry</button>
+        <!--<label id="input" for="Username">Username:</label>-->
+        <input type="text" id="Username" placeholder="Username"><br><br>
+        <button class="button" type="submit" value="Submit" id="SubmitButton">Submit</button>
+        <button class="button" type="Get entry" value="Get" id="getdata">Get entry</button>
     </form>
+
+    <table class="container" id="myTable">
+      <thead>
+        <tr><!--HTML <tr> tag defines a row in an HTML table.-->
+          <th><h1>ID</h1></th> <!--<th> HTML element defines a cell as header of a group of table cells-->
+          <th><h1>Feelings</h1></th>
+          <th><h1>Rating</h1></th>
+          <th><h1>Date</h1></th>
+        </tr>
+      </thead>
+      <tbody class="table_data">
+        <!--<tr>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>-->
+      </tbody>
+    </table>
+
     <div id="result"></div>
   </body>
 </html>
